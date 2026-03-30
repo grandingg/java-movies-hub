@@ -46,7 +46,7 @@ public class MoviesApiTest {
     static void afterAll() {
         server.stop();
     }
-
+ //всего 15 тестов
     @Test
     void getMovies_whenEmpty_returnsEmptyArray() throws Exception {
 
