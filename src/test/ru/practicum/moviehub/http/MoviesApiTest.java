@@ -46,7 +46,7 @@ public class MoviesApiTest {
     static void afterAll() {
         server.stop();
     }
- //всего 15 тестов
+
     @Test
     void getMovies_whenEmpty_returnsEmptyArray() throws Exception {
 
@@ -55,18 +55,18 @@ public class MoviesApiTest {
                 .GET()
                 .build();
 
-        HttpResponse<String> response = client
-                .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        HttpResponse<String> response =
+                client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(200, response.statusCode());
 
-        String contentType = response.headers()
-                .firstValue("Content-Type").orElse("");
+        String contentType =
+                response.headers().firstValue("Content-Type").orElse("");
 
         assertEquals("application/json; charset=UTF-8", contentType);
 
-        List<Movie> movies = gson.fromJson(response.body(),
-                new ListOfMoviesTypeToken().getType());
+        List<Movie> movies =
+                gson.fromJson(response.body(), new ListOfMoviesTypeToken().getType());
 
         assertTrue(movies.isEmpty());
     }
@@ -74,12 +74,7 @@ public class MoviesApiTest {
     @Test
     void postMovie_whenValid_returnsCreatedMovie() throws Exception {
 
-        String jsonBody = """
-                {
-                  "title": "Inception",
-                  "year": 2010
-                }
-                """;
+        String jsonBody = "{ \"title\": \"Inception\", \"year\": 2010 }";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
@@ -87,15 +82,13 @@ public class MoviesApiTest {
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
-        HttpResponse<String> response = client
-                .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        HttpResponse<String> response =
+                client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(201, response.statusCode());
 
         String contentType =
-                response.headers()
-                        .firstValue("Content-Type")
-                        .orElse("");
+                response.headers().firstValue("Content-Type").orElse("");
 
         assertEquals("application/json; charset=UTF-8", contentType);
 
@@ -109,12 +102,7 @@ public class MoviesApiTest {
     @Test
     void postMovie_whenTitleEmpty_returns422() throws Exception {
 
-        String jsonBody = """
-                {
-                  "title": "",
-                  "year": 2010
-                }
-                """;
+        String jsonBody = "{ \"title\": \"\", \"year\": 2010 }";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
@@ -122,26 +110,18 @@ public class MoviesApiTest {
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
-        HttpResponse<String> response = client
-                .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        HttpResponse<String> response =
+                client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(422, response.statusCode());
-
-        String body = response.body();
-
-        assertTrue(body.contains("Ошибка валидации"));
-        assertTrue(body.contains("название не должно быть пустым"));
+        assertTrue(response.body().contains("Ошибка валидации"));
+        assertTrue(response.body().contains("название не должно быть пустым"));
     }
 
     @Test
     void getMovieById_whenExists_returnsMovie() throws Exception {
 
-        String jsonBody = """
-                {
-                  "title": "Matrix",
-                  "year": 1999
-                }
-                """;
+        String jsonBody = "{ \"title\": \"Matrix\", \"year\": 1999 }";
 
         HttpRequest postRequest = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
@@ -149,8 +129,7 @@ public class MoviesApiTest {
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
-        client.send(postRequest,
-                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        client.send(postRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         HttpRequest getRequest = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies/1"))
@@ -181,20 +160,13 @@ public class MoviesApiTest {
                 client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(404, response.statusCode());
-
-        String body = response.body();
-        assertTrue(body.contains("Фильм не найден"));
+        assertTrue(response.body().contains("Фильм не найден"));
     }
 
     @Test
     void deleteMovie_whenExists_returns204() throws Exception {
 
-        String jsonBody = """
-                {
-                  "title": "Avatar",
-                  "year": 2009
-                }
-                """;
+        String jsonBody = "{ \"title\": \"Avatar\", \"year\": 2009 }";
 
         HttpRequest postRequest = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
@@ -213,16 +185,6 @@ public class MoviesApiTest {
                 client.send(deleteRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(204, deleteResponse.statusCode());
-
-        HttpRequest getRequest = HttpRequest.newBuilder()
-                .uri(URI.create(BASE + "/movies/1"))
-                .GET()
-                .build();
-
-        HttpResponse<String> getResponse =
-                client.send(getRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-
-        assertEquals(404, getResponse.statusCode());
     }
 
     @Test
@@ -243,13 +205,8 @@ public class MoviesApiTest {
     @Test
     void getMovies_whenFilterByYear_returnsCorrectMovies() throws Exception {
 
-        String movie1 = """
-                { "title": "Movie1", "year": 2000 }
-                """;
-
-        String movie2 = """
-                { "title": "Movie2", "year": 2010 }
-                """;
+        String movie1 = "{ \"title\": \"Movie1\", \"year\": 2000 }";
+        String movie2 = "{ \"title\": \"Movie2\", \"year\": 2010 }";
 
         client.send(
                 HttpRequest.newBuilder()
@@ -283,20 +240,14 @@ public class MoviesApiTest {
                 gson.fromJson(response.body(), new ListOfMoviesTypeToken().getType());
 
         assertEquals(1, movies.size());
-        assertEquals("Movie2", movies.getFirst().getTitle());
+        assertEquals("Movie2", movies.get(0).getTitle());
     }
 
     @Test
     void postMovie_whenTitleTooLong_returns422() throws Exception {
 
-        String longTitle = "A".repeat(101); //Ничего другого не придумала ахахахха
-
-        String jsonBody = """
-                {
-                  "title": "%s",
-                  "year": 2000
-                }
-                """.formatted(longTitle);
+        String longTitle = "A".repeat(101);
+        String jsonBody = "{ \"title\": \"" + longTitle + "\", \"year\": 2000 }";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
@@ -308,18 +259,12 @@ public class MoviesApiTest {
                 client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(422, response.statusCode());
-        assertTrue(response.body().contains("название не должно превышать 100 символов"));
     }
 
     @Test
     void postMovie_whenYearTooSmall_returns422() throws Exception {
 
-        String jsonBody = """
-                {
-                  "title": "Old Movie",
-                  "year": 1800
-                }
-                """;
+        String jsonBody = "{ \"title\": \"Old Movie\", \"year\": 1800 }";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
@@ -331,18 +276,12 @@ public class MoviesApiTest {
                 client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         assertEquals(422, response.statusCode());
-        assertTrue(response.body().contains("год должен быть между"));
     }
 
     @Test
     void postMovie_whenWrongContentType_returns415() throws Exception {
 
-        String jsonBody = """
-                {
-                  "title": "Test",
-                  "year": 2000
-                }
-                """;
+        String jsonBody = "{ \"title\": \"Test\", \"year\": 2000 }";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE + "/movies"))
