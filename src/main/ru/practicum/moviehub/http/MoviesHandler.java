@@ -1,5 +1,6 @@
 package ru.practicum.moviehub.http;
 
+import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import ru.practicum.moviehub.model.Movie;
 import ru.practicum.moviehub.store.MoviesStore;
@@ -9,11 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class MoviesHandler extends BaseHttpHandler {
 
     private final MoviesStore store;
+    private final Gson gson = new Gson();
 
     public MoviesHandler(MoviesStore store) {
         this.store = store;
@@ -55,17 +56,7 @@ public class MoviesHandler extends BaseHttpHandler {
         }
 
         List<Movie> movies = store.getAll();
-
-        String json = movies.stream()
-                .map(m -> String.format(
-                        "{\"id\":%d,\"title\":\"%s\",\"year\":%d}",
-                        m.getId(),
-                        m.getTitle(),
-                        m.getYear()
-                ))
-                .collect(Collectors.joining(",", "[", "]"));
-
-        sendJson(ex, 200, json);
+        sendJson(ex, 200, gson.toJson(movies));
     }
 
     private void handlePost(HttpExchange ex) throws IOException {
@@ -91,46 +82,18 @@ public class MoviesHandler extends BaseHttpHandler {
 
         title = title.replace("\"", "");
 
-        List<String> errors = new ArrayList<>();
-
-        if (title.isBlank()) {
-            errors.add("название не должно быть пустым");
-        }
-
-        if (title.length() > 100) {
-            errors.add("название не должно превышать 100 символов");
-        }
-
-        int year = 0;
-
-        try {
-            year = Integer.parseInt(yearStr);
-        } catch (Exception e) {
-            errors.add("год должен быть числом");
-        }
-
-        int currentYear = Year.now().getValue();
-
-        if (year < 1888 || year > currentYear + 1) {
-            errors.add("год должен быть между 1888 и " + (currentYear + 1));
-        }
+        List<String> errors = validateMovie(title, yearStr);
 
         if (!errors.isEmpty()) {
-            String errorJson = buildValidationError(errors);
-            sendJson(ex, 422, errorJson);
+            sendJson(ex, 422, buildValidationError(errors));
             return;
         }
 
+        int year = Integer.parseInt(yearStr);
+
         Movie movie = store.add(title, year);
 
-        String json = String.format(
-                "{\"id\":%d,\"title\":\"%s\",\"year\":%d}",
-                movie.getId(),
-                movie.getTitle(),
-                movie.getYear()
-        );
-
-        sendJson(ex, 201, json);
+        sendJson(ex, 201, gson.toJson(movie));
     }
 
     private void handleGetId(HttpExchange ex, String path) throws IOException {
@@ -153,14 +116,7 @@ public class MoviesHandler extends BaseHttpHandler {
             return;
         }
 
-        String json = String.format(
-                "{\"id\":%d,\"title\":\"%s\",\"year\":%d}",
-                movie.getId(),
-                movie.getTitle(),
-                movie.getYear()
-        );
-
-        sendJson(ex, 200, json);
+        sendJson(ex, 200, gson.toJson(movie));
     }
 
     private void handleGetByYear(HttpExchange ex, String query) throws IOException {
@@ -178,18 +134,9 @@ public class MoviesHandler extends BaseHttpHandler {
 
         List<Movie> movies = store.getAll().stream()
                 .filter(m -> m.getYear() == year)
-                .collect(Collectors.toList());
+                .toList();
 
-        String json = movies.stream()
-                .map(m -> String.format(
-                        "{\"id\":%d,\"title\":\"%s\",\"year\":%d}",
-                        m.getId(),
-                        m.getTitle(),
-                        m.getYear()
-                ))
-                .collect(Collectors.joining(",", "[", "]"));
-
-        sendJson(ex, 200, json);
+        sendJson(ex, 200, gson.toJson(movies));
     }
 
     private void handleDelete(HttpExchange ex) throws IOException {
@@ -224,6 +171,36 @@ public class MoviesHandler extends BaseHttpHandler {
         sendNoContent(ex);
     }
 
+    private List<String> validateMovie(String title, String yearStr) {
+
+        List<String> errors = new ArrayList<>();
+
+        if (title == null || title.isBlank()) {
+            errors.add("название не должно быть пустым");
+        }
+
+        if (title != null && title.length() > 100) {
+            errors.add("название не должно превышать 100 символов");
+        }
+
+        int year;
+
+        try {
+            year = Integer.parseInt(yearStr);
+        } catch (Exception e) {
+            errors.add("год должен быть числом");
+            return errors;
+        }
+
+        int currentYear = Year.now().getValue();
+
+        if (year < 1888 || year > currentYear + 1) {
+            errors.add("год должен быть между 1888 и " + (currentYear + 1));
+        }
+
+        return errors;
+    }
+
     private String extractValue(String json, String field) {
         try {
             String pattern = "\"" + field + "\":";
@@ -246,13 +223,6 @@ public class MoviesHandler extends BaseHttpHandler {
     }
 
     private String buildValidationError(List<String> details) {
-        String joined = details.stream()
-                .map(d -> "\"" + d + "\"")
-                .collect(Collectors.joining(","));
-
-        return String.format(
-                "{\"error\":\"Ошибка валидации\",\"details\":[%s]}",
-                joined
-        );
+        return gson.toJson(new ru.practicum.moviehub.api.ErrorResponse("Ошибка валидации", details));
     }
 }
